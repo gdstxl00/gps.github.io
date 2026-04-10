@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML307C-GC GPS定位监控系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .status-bar {
+            display: flex;
+            justify-content: space-around;
+            background: #ecf0f1;
+            padding: 15px;
+            border-bottom: 1px solid #bdc3c7;
+        }
+        
+        .status-item {
+            text-align: center;
+            flex: 1;
+        }
+        
+        .status-label {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+        
+        .status-value {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #2c3e50;
+        }
+        
+        .status-connected {
+            color: #27ae60;
+        }
+        
+        .status-disconnected {
+            color: #e74c3c;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .control-panel {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .panel-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #34495e;
+        }
+        
+        input, button {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            background: linear-gradient(135deg, #2980b9 0%, #2573a7 100%);
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+        }
+        
+        .btn-success:hover {
+            background: linear-gradient(135deg, #229954 0%, #1e8449 100%);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+        
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        }
+        
+        .btn-warning:hover {
+            background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+        }
+        
+        .at-commands {
+            margin-top: 20px;
+        }
+        
+        .at-command-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        
+        .at-command-item {
+            margin-bottom: 5px;
+        }
+        
+        .messages-panel {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+            height: 300px;
+            overflow-y: auto;
+        }
+        
+        .message-log {
+            height: 250px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+        }
+        
+        .message-item {
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .message-received {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+        
+        .message-sent {
+            background: #cce5ff;
+            color: #004085;
+            border-left: 4px solid #007bff;
+        }
+        
+        .message-error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .message-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+        
+        .map-container {
+            height: 600px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid #dee2e6;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .accuracy-indicator {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+        
+        .high-accuracy {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .medium-accuracy {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .low-accuracy {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .connection-status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+        
+        .connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📍 ML307C-GC GPS定位监控系统</h1>
+            <p>基于高德地图API与MQTT协议的专业GPS追踪平台</p>
+        </div>
+        
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-label">MQTT连接状态</div>
+                <div id="connection-status" class="status-value status-disconnected">未连接</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">GPS状态</div>
+                <div id="gps-status" class="status-value">未知</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">电量</div>
+                <div id="battery-level" class="status-value">未知</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">定位精度</div>
+                <div id="accuracy-status" class="status-value">未知</div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="control-panel">
+                <h3 class="panel-title">📡 连接设置</h3>
+                <div class="form-group">
+                    <label for="broker-url">MQTT Broker:</label>
+                    <input type="text" id="broker-url" value="wss://broker.emqx.io:8084/mqtt">
+                </div>
+                
+                <div class="form-group">
+                    <label for="client-id">客户端ID:</label>
+                    <input type="text" id="client-id" value="ml307c_gc_tracker_4112789">
+                </div>
+                
+                <div class="form-group">
+                    <label for="topic-sub">订阅主题:</label>
+                    <input type="text" id="topic-sub" value="/device4112789/gps">
+                </div>
+                
+                <div class="form-group">
+                    <label for="topic-pub">发布主题:</label>
+                    <input type="text" id="topic-pub" value="/server4112789/gps">
+                </div>
+                
+                <button id="connect-btn" class="btn-success">🔌 连接</button>
+                <button id="disconnect-btn" class="btn-danger" disabled>🔌 断开</button>
+                
+                <h3 class="panel-title">🔧 AT命令控制</h3>
+                <div class="form-group">
+                    <label for="custom-command">自定义AT命令:</label>
+                    <input type="text" id="custom-command" placeholder="输入AT命令，如: AT+GNSS?">
+                    <button id="send-custom-btn" class="btn-warning">📤 发送</button>
+                </div>
+                
+                <div class="at-commands">
+                    <h4>常用AT命令:</h4>
+                    <div class="at-command-list">
+                        <div class="at-command-item">
+                            <button onclick="sendATCommand('AT')" class="btn-warning btn-sm">AT - 测试连接</button>
+                        </div>
+                        <div class="at-command-item">
+                            <button onclick="sendATCommand('AT+ADC=2')" class="btn-warning btn-sm">电量查询</button>
+                        </div>
+                        <div class="at-command-item">
+                            <button onclick="sendATCommand('AT+GNSS?')" class="btn-warning btn-sm">GPS状态查询</button>
+                        </div>
+                        <div class="at-command-item">
+                            <button onclick="sendATCommand('AT+GNSS=1,31')" class="btn-success btn-sm">打开GPS</button>
+                        </div>
+                        <div class="at-command-item">
+                            <button onclick="sendATCommand('AT+GNSS=0,31')" class="btn-danger btn-sm">关闭GPS</button>
+                        </div>
+                        <div class="at-command-item">
+                            <button onclick="sendATCommand('RESET')" class="btn-danger btn-sm">重启设备</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="messages-panel">
+                    <h3 class="panel-title">📝 消息记录</h3>
+                    <div id="message-log" class="message-log">
+                        <div class="message-item message-info">系统已启动，等待连接...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入MQTT.js库 -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/mqtt/4.1.0/mqtt.min.js"></script>
+    
+    <!-- 引入高德地图API -->
+    <script type="text/javascript" 
+            src="https://webapi.amap.com/maps?v=1.4.15&key=d3fc243623f5a7f5f034f5ff5052fbff"></script>
+    
+    <script>
+        // 精确的坐标转换算法集合
+        const CoordinateConverter = {
+            // WGS84转GCJ-02（火星坐标系）
+            wgs84togcj02: function(lng, lat) {
+                if (this.outOfChina(lat, lng)) {
+                    return [lng, lat];
+                }
+                
+                const pi = 3.1415926535897932384626;
+                const a = 6378245.0;  // 长半轴
+                const ee = 0.00669342162296594323; // 第一偏心率平方
+                
+                // 计算转换偏移量
+                const dLat = this.transformLat(lng - 105.0, lat - 35.0);
+                const dLng = this.transformLng(lng - 105.0, lat - 35.0);
+                
+                const radLat = lat / 180.0 * pi;
+                let magic = Math.sin(radLat);
+                magic = 1 - ee * magic * magic;
+                const sqrtMagic = Math.sqrt(magic);
+                
+                // 计算转换后的经纬度
+                const _dLat = (dLat * 180.0) / ((a * (1 - ee)) / (magic * sqrtMagic) * pi);
+                const _dLng = (dLng * 180.0) / (a / sqrtMagic * Math.cos(radLat) * pi);
+                
+                const mgLat = lat + _dLat;
+                const mgLon = lng + _dLng;
+                
+                return [mgLon, mgLat];
+            },
+            
+            // GCJ-02转WGS84（逆转换）
+            gcj02towgs84: function(lng, lat) {
+                if (this.outOfChina(lat, lng)) {
+                    return [lng, lat];
+                }
+                
+                const d = this.wgs84togcj02(lng, lat);
+                const lngDelta = lng * 2 - d[0];
+                const latDelta = lat * 2 - d[1];
+                
+                // 使用迭代法提高精度
+                let iteration = 0;
+                let currentLng = lng;
+                let currentLat = lat;
+                
+                while (iteration < 5) {
+                    const tempResult = this.wgs84togcj02(currentLng, currentLat);
+                    const deltaLng = tempResult[0] - lng;
+                    const deltaLat = tempResult[1] - lat;
+                    currentLng -= deltaLng;
+                    currentLat -= deltaLat;
+                    iteration++;
+                }
+                
+                return [currentLng, currentLat];
+            },
+            
+            // WGS84转BD-09（百度坐标系）
+            wgs84tobd09: function(lng, lat) {
+                const gcj02 = this.wgs84togcj02(lng, lat);
+                const pi = 3.1415926535897932384626;
+                
+                const x = gcj02[0];
+                const y = gcj02[1];
+                const z = Math.sqrt(x * x + y * y) + 0.00002 * Math.sin(y * pi * 3000.0 / 180.0);
+                const theta = Math.atan2(y, x) + 0.000003 * Math.cos(x * pi * 3000.0 / 180.0);
+                const bd_lng = z * Math.cos(theta) + 0.0065;
+                const bd_lat = z * Math.sin(theta) + 0.006;
+                
+                return [bd_lng, bd_lat];
+            },
+            
+            // BD-09转WGS84（逆转换）
+            bd09towgs84: function(lng, lat) {
+                const x = lng - 0.0065;
+                const y = lat - 0.006;
+                const z = Math.sqrt(x * x + y * y) - 0.00002 * Math.sin(y * Math.PI * 3000.0 / 180.0);
+                const theta = Math.atan2(y, x) - 0.000003 * Math.cos(x * Math.PI * 3000.0 / 180.0);
+                const gg_lng = z * Math.cos(theta);
+                const gg_lat = z * Math.sin(theta);
+                
+                return this.gcj02towgs84(gg_lng, gg_lat);
+            },
+            
+            // 纬度转换函数
+            transformLat: function(x, y) {
+                let ret = -100.0 + 2.0 * x + 3.0 * y + 0.1 * y * y + 0.02 * x * y + 0.2 * Math.sqrt(Math.abs(x));
+                ret += (20.0 * Math.sin(6.0 * x * Math.PI) + 20.0 * Math.sin(2.0 * x * Math.PI)) * 2.0 / 3.0;
+                ret += (20.0 * Math.sin(y * Math.PI) + 40.0 * Math.sin(y / 3.0 * Math.PI)) * 2.0 / 3.0;
+                ret += (160.0 * Math.sin(y / 12.0 * Math.PI) + 320 * Math.sin(y * Math.PI / 30.0)) * 2.0 / 3.0;
+                return ret;
+            },
+            
+            // 经度转换函数
+            transformLng: function(x, y) {
+                let ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x));
+                ret += (20.0 * Math.sin(6.0 * x * Math.PI) + 20.0 * Math.sin(2.0 * x * Math.PI)) * 2.0 / 3.0;
+                ret += (20.0 * Math.sin(x * Math.PI) + 40.0 * Math.sin(x / 3.0 * Math.PI)) * 2.0 / 3.0;
+                ret += (150.0 * Math.sin(x / 12.0 * Math.PI) + 300.0 * Math.sin(x / 30.0 * Math.PI)) * 2.0 / 3.0;
+                return ret;
+            },
+            
+            // 检查是否在中国范围内
+            outOfChina: function(lat, lng) {
+                if (lng < 72.004 || lng > 137.8347) return true;
+                if (lat < 0.8293 || lat > 55.8271) return true;
+                return false;
+            }
+        };
+        
+        // 全局变量
+        let client = null;
+        let map = null;
+        let marker = null;
+        let routePolyline = null;
+        let positionHistory = [];
+        let deviceState = {
+            gpsStatus: '未知',
+            batteryLevel: '未知',
+            batteryVoltage: '-',
+            firmwareVersion: '-',
+            temperature: '-'
+        };
+        
+        // DOM元素引用
+        const connectionStatusEl = document.getElementById('connection-status');
+        const gpsStatusEl = document.getElementById('gps-status');
+        const batteryLevelEl = document.getElementById('battery-level');
+        const accuracyStatusEl = document.getElementById('accuracy-status');
+        const messageLogEl = document.getElementById('message-log');
+        
+        // 连接控制按钮
+        const connectBtn = document.getElementById('connect-btn');
+        const disconnectBtn = document.getElementById('disconnect-btn');
+        const sendCustomBtn = document.getElementById('send-custom-btn');
+        
+        // 初始化地图
+        function initMap() {
+            map = new AMap.Map('map', {
+                zoom: 12,
+                center: [116.397428, 39.90923],
+                viewMode: '3D',
+                mapStyle: 'amap://styles/normal'
+            });
+            
+            // 添加地图控件
+            AMap.plugin([
+                'AMap.Scale',
+                'AMap.ToolBar',
+                'AMap.Geolocation',
+                'AMap.ControlBar',
+                'AMap.MapType'
+            ], function() {
+                map.addControl(new AMap.Scale());
+                map.addControl(new AMap.ToolBar());
+                
+                // 添加定位控件
+                const geolocation = new AMap.Geolocation({
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0,
+                    convert: true,
+                    showButton: true,
+                    buttonPosition: 'LB',
+                    buttonOffset: new AMap.Pixel(10, 20),
+                    showCircle: true,
+                    showMarker: true,
+                    showRadius: true
+                });
+                map.addControl(geolocation);
+                
+                // 添加指南针控件
+                map.addControl(new AMap.ControlBar({
+                    position: { right: '40px', bottom: '40px' }
+                }));
+                
+                // 添加地图类型切换控件
+                map.addControl(new AMap.MapType({
+                    position: { right: '40px', top: '10px' }
+                }));
+            });
+        }
+        
+        // 根据HDOP值评估定位精度
+        function getAccuracyClass(hdop) {
+            if (hdop <= 1.0) {
+                return 'high-accuracy';
+            } else if (hdop <= 2.0) {
+                return 'medium-accuracy';
+            } else {
+                return 'low-accuracy';
+            }
+        }
+        
+        // 更新GPS数据展示
+        function updateGPSDisplay(data) {
+            const timestamp = new Date().toLocaleString();
+            const originalLat = parseFloat(data.lat);
+            const originalLng = parseFloat(data.lon);
+            
+            if (isNaN(originalLat) || isNaN(originalLng)) {
+                addMessage('GPS数据格式错误: 无法解析坐标', 'error');
+                return;
+            }
+            
+            // 使用精确的坐标转换算法
+            const gcj02Coord = CoordinateConverter.wgs84togcj02(originalLng, originalLat);
+            const convertedLng = gcj02Coord[0];
+            const convertedLat = gcj02Coord[1];
+            
+            // 更新地图标记
+            updateMapMarker(originalLat, originalLng, data);
+            
+            // 更新状态栏
+            gpsStatusEl.textContent = data.fix ? '已定位' : '未定位';
+            gpsStatusEl.className = data.fix ? 'status-value status-connected' : 'status-value status-disconnected';
+            
+            // 更新精度状态
+            const hdop = parseFloat(data.hdop) || 99.9;
+            const accuracyClass = getAccuracyClass(hdop);
+            const accuracyText = hdop <= 1.0 ? '高精度' : hdop <= 2.0 ? '中等精度' : '低精度';
+            accuracyStatusEl.innerHTML = `${accuracyText} <span class="accuracy-indicator ${accuracyClass}">${hdop}</span>`;
+        }
+        
+        // 更新地图标记
+        function updateMapMarker(lat, lng, data) {
+            if (!map) return;
+            
+            // 使用精确的坐标转换算法
+            const gcj02Coord = CoordinateConverter.wgs84togcj02(lng, lat);
+            const convertedLng = gcj02Coord[0];
+            const convertedLat = gcj02Coord[1];
+            
+            console.log(`地图标记位置: ${convertedLat}, ${convertedLng}`);
+            
+            // 移除现有标记
+            if (marker) {
+                map.remove(marker);
+            }
+            
+            // 根据定位精度调整标记样式
+            const hdop = parseFloat(data.hdop) || 99.9;
+            let markerSize = new AMap.Size(32, 32);
+            let markerImage = 'https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png';
+            
+            if (hdop <= 1.0) {
+                // 高精度
+                markerImage = 'https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png';
+            } else if (hdop <= 2.0) {
+                // 中等精度
+                markerImage = 'https://webapi.amap.com/theme/v1.3/markers/n/mark_y.png';
+            } else {
+                // 低精度
+                markerImage = 'https://webapi.amap.com/theme/v1.3/markers/n/mark_o.png';
+            }
+            
+            // 创建新标记
+            marker = new AMap.Marker({
+                position: new AMap.LngLat(convertedLng, convertedLat),
+                title: `当前位置 - ${lat.toFixed(6)}, ${lng.toFixed(6)} (HDOP: ${hdop})`,
+                icon: new AMap.Icon({
+                    size: markerSize,
+                    image: markerImage,
+                    imageSize: markerSize
+                }),
+                label: {
+                    content: `当前位置 (${hdop <= 1.0 ? '高' : hdop <= 2.0 ? '中' : '低'}精)`,
+                    offset: new AMap.Pixel(0, -25)
+                },
+                extData: {
+                    originalLat: lat,
+                    originalLng: lng,
+                    convertedLat: convertedLat,
+                    convertedLng: convertedLng,
+                    hdop: hdop
+                }
+            });
+            
+            // 添加信息窗体
+            const infoWindow = new AMap.InfoWindow({
+                content: `
+                    <div style="padding: 10px;">
+                        <h4>ML307C-GC 定位信息</h4>
+                        <p><strong>原始坐标:</strong> ${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
+                        <p><strong>转换坐标:</strong> ${convertedLat.toFixed(6)}, ${convertedLng.toFixed(6)}</p>
+                        <p><strong>海拔:</strong> ${data.alt}米</p>
+                        <p><strong>速度:</strong> ${data.spkm} km/h</p>
+                        <p><strong>航向:</strong> ${data.cog}°</p>
+                        <p><strong>卫星数:</strong> ${data.nsat}颗</p>
+                        <p><strong>精度:</strong> HDOP ${data.hdop} (${hdop <= 1.0 ? '高精度' : hdop <= 2.0 ? '中等精度' : '低精度'})</p>
+                        <p><strong>时间:</strong> ${new Date().toLocaleString()}</p>
+                    </div>
+                `,
+                offset: new AMap.Pixel(0, -30)
+            });
+            
+            marker.on('click', function() {
+                infoWindow.open(map, marker.getPosition());
+            });
+            
+            // 添加标记到地图
+            map.add(marker);
+            
+            // 设置地图中心到当前位置
+            map.setCenter([convertedLng, convertedLat]);
+            map.setZoom(16); // 设置合适的缩放级别
+            
+            // 添加到轨迹历史
+            positionHistory.push({lng: convertedLng, lat: convertedLat});
+            
+            // 更新轨迹线
+            updateRouteLine();
+        }
+        
+        // 更新轨迹线
+        function updateRouteLine() {
+            if (positionHistory.length < 2) return;
+            
+            // 移除现有轨迹线
+            if (routePolyline) {
+                map.remove(routePolyline);
+            }
+            
+            // 创建轨迹线
+            routePolyline = new AMap.Polyline({
+                path: positionHistory.map(pos => new AMap.LngLat(pos.lng, pos.lat)),
+                strokeColor: '#FF3333',
+                strokeWeight: 4,
+                strokeOpacity: 0.8,
+                strokeStyle: 'solid'
+            });
+            
+            map.add(routePolyline);
+        }
+        
+        // 连接到MQTT服务器
+        function connectToMqtt() {
+            const brokerUrl = document.getElementById('broker-url').value;
+            const clientId = document.getElementById('client-id').value;
+            const topicSub = document.getElementById('topic-sub').value;
+            
+            // MQTT连接选项
+            const options = {
+                keepalive: 60,
+                protocolId: 'MQTT',
+                protocolVersion: 4,
+                clean: true,
+                reconnectPeriod: 1000,
+                connectTimeout: 30000,
+                clientId: clientId
+            };
+            
+            try {
+                client = mqtt.connect(brokerUrl, options);
+                
+                client.on('connect', function () {
+                    addMessage('MQTT连接成功', 'success');
+                    connectionStatusEl.textContent = '已连接';
+                    connectionStatusEl.className = 'status-value status-connected';
+                    
+                    connectBtn.disabled = true;
+                    disconnectBtn.disabled = false;
+                    
+                    // 订阅GPS数据主题
+                    client.subscribe(topicSub, function (err) {
+                        if (err) {
+                            addMessage(`订阅失败: ${err.message}`, 'error');
+                        } else {
+                            addMessage(`成功订阅主题: ${topicSub}`, 'info');
+                            
+                            // 连接成功后自动查询电量
+                            setTimeout(function() {
+                                sendATCommand('AT+ADC=2');
+                            }, 1000);
+                        }
+                    });
+                });
+                
+                client.on('message', function (topic, message) {
+                    handleReceivedMessage(topic, message.toString());
+                });
+                
+                client.on('error', function (error) {
+                    addMessage(`连接错误: ${error.message}`, 'error');
+                    disconnectFromMqtt();
+                });
+                
+                client.on('close', function () {
+                    if (connectionStatusEl.textContent === '已连接') {
+                        addMessage('MQTT连接已关闭', 'info');
+                        connectionStatusEl.textContent = '未连接';
+                        connectionStatusEl.className = 'status-value status-disconnected';
+                        
+                        connectBtn.disabled = false;
+                        disconnectBtn.disabled = true;
+                    }
+                });
+                
+            } catch (error) {
+                addMessage(`连接失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 断开MQTT连接
+        function disconnectFromMqtt() {
+            if (client && client.connected) {
+                client.end();
+                addMessage('已断开连接', 'info');
+                
+                connectionStatusEl.textContent = '未连接';
+                connectionStatusEl.className = 'status-value status-disconnected';
+                
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+            }
+        }
+        
+        // 发送MQTT消息
+        function publishMessage(topic, message) {
+            if (!client || !client.connected) {
+                addMessage('请先连接到MQTT服务器', 'error');
+                return false;
+            }
+            
+            // 确保AT命令格式正确
+            if (!message.endsWith('\r\n')) {
+                message += '\r\n';
+            }
+            
+            client.publish(topic, message, { qos: 0, retain: false }, function (err) {
+                if (err) {
+                    addMessage(`发布失败: ${err.message}`, 'error');
+                } else {
+                    addMessage(`发送命令: ${message.trim()}`, 'sent');
+                }
+            });
+            
+            return true;
+        }
+        
+        // 发送AT命令
+        function sendATCommand(command) {
+            const topicPub = document.getElementById('topic-pub').value;
+            return publishMessage(topicPub, command);
+        }
+        
+        // 处理接收的消息
+        function handleReceivedMessage(topic, messageStr) {
+            addMessage(`收到来自 [${topic}]: ${messageStr}`, 'received');
+            
+            try {
+                // 尝试解析为JSON格式的GPS数据
+                const data = JSON.parse(messageStr);
+                
+                // 检查是否为GPS数据格式
+                if (typeof data.lat !== 'undefined' && typeof data.lon !== 'undefined') {
+                    updateGPSDisplay(data);
+                } else {
+                    // 可能是AT命令响应或其他数据
+                    addMessage(`非GPS数据: ${messageStr}`, 'info');
+                }
+            } catch (e) {
+                // 如果不是JSON格式，可能是AT命令响应
+                if (messageStr.includes('+GNSS:')) {
+                    // 处理GPS状态响应
+                    const match = messageStr.match(/\+GNSS:\s*(\d+)/);
+                    if (match) {
+                        const status = match[1];
+                        deviceState.gpsStatus = status === '1' ? '已开启' : '已关闭';
+                        gpsStatusEl.textContent = deviceState.gpsStatus;
+                        gpsStatusEl.className = status === '1' ? 'status-value status-connected' : 'status-value status-disconnected';
+                    }
+                } else if (messageStr.includes('+ADC:')) {
+                    // 处理电量响应
+                    const match = messageStr.match(/\+ADC:\s*(\d+)/);
+                    if (match) {
+                        const voltage = parseInt(match[1]);
+                        deviceState.batteryVoltage = `${voltage} mV`;
+                        batteryLevelEl.textContent = `${((voltage - 3000) / 20).toFixed(1)}%`; // 简单估算电量百分比
+                        addMessage(`电量查询结果: ${voltage} mV (${((voltage - 3000) / 20).toFixed(1)}%)`, 'info');
+                    }
+                } else if (messageStr.includes('OK') || messageStr.includes('ERROR')) {
+                    // AT命令执行结果
+                    addMessage(`AT命令响应: ${messageStr}`, 'info');
+                } else {
+                    addMessage(`未知消息类型: ${messageStr}`, 'info');
+                }
+            }
+        }
+        
+        // 添加消息到日志
+        function addMessage(msg, type = 'info') {
+            const now = new Date().toLocaleTimeString();
+            const msgElement = document.createElement('div');
+            msgElement.className = `message-item message-${type}`;
+            msgElement.innerHTML = `[${now}] ${msg}`;
+            messageLogEl.appendChild(msgElement);
+            
+            // 自动滚动到底部
+            messageLogEl.scrollTop = messageLogEl.scrollHeight;
+        }
+        
+        // 页面加载完成后初始化
+        window.onload = function() {
+            initMap();
+            
+            // 添加欢迎消息
+            addMessage('系统已启动，欢迎使用ML307C-GC GPS定位监控系统！', 'info');
+            addMessage('注意：订阅主题已更正为: /device4112789/gps', 'info');
+            addMessage('注意：发布主题已更正为: /server4112789/gps', 'info');
+            addMessage('使用国家测绘局标准坐标转换算法，确保位置准确性', 'info');
+            addMessage('请连接到MQTT服务器以开始接收GPS数据。', 'info');
+        };
+        
+        // 事件监听器
+        connectBtn.addEventListener('click', connectToMqtt);
+        disconnectBtn.addEventListener('click', disconnectFromMqtt);
+        
+        sendCustomBtn.addEventListener('click', function() {
+            const customCommand = document.getElementById('custom-command').value.trim();
+            if (customCommand) {
+                sendATCommand(customCommand);
+                document.getElementById('custom-command').value = '';
+            } else {
+                addMessage('请输入AT命令', 'error');
+            }
+        });
+        
+        // 回车键发送自定义命令
+        document.getElementById('custom-command').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendCustomBtn.click();
+            }
+        });
+        
+        // 页面卸载时断开连接
+        window.addEventListener('beforeunload', function() {
+            if (client && client.connected) {
+                client.end();
+            }
+        });
+    </script>
+</body>
+</html>
